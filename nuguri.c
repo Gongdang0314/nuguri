@@ -2,7 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#ifdef _WIN32
+#include <conio.h>
+#else
 #include <termios.h>
+#include <unistd.h>
+#endif
 #include <fcntl.h>
 #include <time.h>
 
@@ -300,6 +305,9 @@ void check_collisions() {
 
 // 비동기 키보드 입력 확인
 int kbhit() {
+#ifdef _WIN32
+    _kbhit();
+#else
     struct termios oldt, newt;
     int ch;
     int oldf;
@@ -317,4 +325,5 @@ int kbhit() {
         return 1;
     }
     return 0;
+#endif
 }
