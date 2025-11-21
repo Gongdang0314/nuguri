@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #ifdef _WIN32
 #include <conio.h>
 #include <windows.h>
@@ -65,6 +64,7 @@ void update_game(char input);//화면 갱신
 void move_player(char input);// player의 입력을 받아서 그에 맞게 플레이어를 움직여주는 함수
 void move_enemies();//적들의 구조체 내부 정보에 의거하여 적들이 움직이게 하는 함수
 void check_collisions();//충돌검사해서 지나갈수있나 아니면 아이템 먹기 플레이어 사망
+void delay(int ms);//usleep쓰는 부분이 있어서 window와 호환과 재사용성을 위한 함수
 int kbhit();//입력받는다고 게임 전체 멈추면 안되서 씀
 
 int main() {
@@ -98,7 +98,7 @@ int main() {
 
         update_game(c);
         draw_game();
-        usleep(90000);
+        delay(90);
 
         if (map[stage][player_y][player_x] == 'E') {
             stage++;
@@ -346,5 +346,13 @@ int kbhit() {
         return 1;
     }
     return 0;
+#endif
+}
+void delay(int ms)
+{
+#ifdef _WIN32
+  Sleep(ms);
+#else
+  usleep(ms * 1000); // <unistd.h>에 선언된 usleep의 단위인 마이크로초에 * 1000 = 밀리초
 #endif
 }
