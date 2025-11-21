@@ -4,6 +4,7 @@
 #include <unistd.h>
 #ifdef _WIN32
 #include <conio.h>
+#include <windows.h>
 #else
 #include <termios.h>
 #include <unistd.h>
@@ -46,8 +47,13 @@ int enemy_count = 0;//현재 남은 적, 현재 해치운 적들수
 Coin coins[MAX_COINS];//현재 맵에 흩뿌려져있는 코인 개수 30개
 int coin_count = 0;//남은 코인수인가, 먹은 코인수
 
+#ifdef _WIN32
+DWORD orig_console;
+HANDLE hStdin;
+#else
 // 터미널 설정
 struct termios orig_termios;//현재 터미널 설정을 저장, 초기화 안됨
+#endif
 
 // 함수 선언
 void disable_raw_mode();
@@ -112,16 +118,31 @@ int main() {
     return 0;
 }
 
-
 // 터미널 Raw 모드 활성화/비활성화
-void disable_raw_mode() { tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios); }
+void disable_raw_mode() { 
+#ifdef _WIN32
+    SetConsoleMode(hStdin, orig_console);
+#else
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios); 
+#endif
+}
 void enable_raw_mode() {
+#ifdef _WIN32
+    hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    GetConsoleMode(hStdin, &orig_console);
+    atexit(disable_raw_mode);
+    DWORD raw_mode = orig_console;
+    raw_mode &= ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT);
+    SetConsoleMode(hStdin, raw_mode);
+#else
     tcgetattr(STDIN_FILENO, &orig_termios);
     atexit(disable_raw_mode);
     struct termios raw = orig_termios;
     raw.c_lflag &= ~(ECHO | ICANON);
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+#endif
 }
+
 
 // 맵 파일 로드
 void load_maps() {
