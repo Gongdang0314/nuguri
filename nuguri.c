@@ -73,6 +73,10 @@ int main() {
     load_maps();//맵 불러오기
     init_stage();//스테이지 초기화
 
+    #ifdef _WIN32
+        SetConsoleOutputCP(CP_UTF8); // 콘솔 출력 인코딩을 UTF-8로 설정
+    #endif
+
     char c = '\0';// 널문자
     int game_over = 0;// 아직 게임 오버 안됨 
 
@@ -142,7 +146,6 @@ void enable_raw_mode() {
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 #endif
 }
-
 
 // 맵 파일 로드
 void load_maps() {
