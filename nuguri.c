@@ -276,9 +276,26 @@ void move_player(char input) {
             if(next_y < 0) next_y = 0;
             velocity_y++;
 
-            if (velocity_y < 0 && next_y < MAP_HEIGHT && map[stage][next_y][player_x] == '#') {
+            if (velocity_y < 0 && next_y < MAP_HEIGHT && map[stage][player_y - 1][player_x] == '#') {//바로 위가 벽 점프막기
+                next_y = player_y;//0칸 점프
                 velocity_y = 0;
-            } else if (next_y < MAP_HEIGHT) {
+                is_jumping = 0;//점프 아님
+            }
+            else if (velocity_y < 0 && next_y < MAP_HEIGHT && map[stage][player_y - 1][player_x] != '#' && map[stage][player_y - 2][player_x] != '#' && map[stage][player_y - 3][player_x] != '#') {
+                //3칸점프할수있으면 그대로 냅두기, -2 ,-1 
+            }
+            else if (velocity_y < 0 && next_y < MAP_HEIGHT && map[stage][player_y - 1][player_x] != '#' && map[stage][player_y - 2][player_x] != '#') {//점프할 공간 2칸, 한번에 2칸만 점프하기
+                next_y = player_y - 2;//2칸 점프
+                velocity_y = 0;//위로는 더 안감
+                is_jumping = 0;//점프아님 이제 추락함
+            }
+            else if (velocity_y < 0 && next_y < MAP_HEIGHT && map[stage][player_y - 1][player_x] != '#') {//점프할 공간 1칸, 1칸만 점프하기
+                next_y = player_y - 1;//1칸 점프
+                velocity_y = 0;//위로는 더 안감
+                is_jumping = 0;//점프아님 이제 추락함
+            }
+            
+            if (next_y < MAP_HEIGHT) {
                 player_y = next_y;
             }
             
