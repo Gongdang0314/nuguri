@@ -295,10 +295,15 @@ void move_player(char input) {
                 is_jumping = 0;//점프아님 이제 추락함
             }
 
-            if (velocity_y > 0 && next_y < MAP_HEIGHT && map[stage][next_y][player_x] == '#'){  // 점프 후 x 이동 시 벽이 뚫리는 현상 제거
-                next_y = player_y;  // 현재 위치 유지
-                is_jumping = 0;
-                velocity_y = 0;
+            if(velocity_y > 0){  // 점프 후 낙하 시 바닥이 뚫리는 현상 제거 (velocity=3이면 player_y+3이기 때문에 그 사이 벽은 체크가 안됨 반복문으로 하나하나 체크)
+                for(int i = 1; i <= velocity_y && (player_y + i) < MAP_HEIGHT; i++){
+                    if(map[stage][player_y + i][player_x] == '#'){
+                        next_y = player_y + i - 1;
+                        is_jumping = 0;
+                        velocity_y = 0;
+                        break;
+                    }
+                }
             }
             
             if (next_y < MAP_HEIGHT) {
