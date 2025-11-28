@@ -260,8 +260,6 @@ void move_player(char input) {
             }
             break;
     }
-
-    if (next_x >= 0 && next_x < MAP_WIDTH && map[stage][player_y][next_x] != '#') player_x = next_x;
     
     if (input == 'w' || input == 's' || on_ladder)
     { // 꼭 사다리 위가 아니여도 위치조정하게하여 벽에 붙은 사다리로 이동할수있게함, onladder 조건 추가로 else 중력 적용 로직으로 가는거 막음, 사다리에 매달려있으니
@@ -387,6 +385,8 @@ void move_player(char input) {
             }
         }
     }
+
+    if (next_x >= 0 && next_x < MAP_WIDTH && map[stage][player_y][next_x] != '#') player_x = next_x;//상하로 움직있는 다음 수평을 검사하면 중간에 벽뚫릴일이없음, 수평검사해놓고 위로 올라가버리면 위의 칸 상황은 다를 수있기때문에 위에칸에서도 수평검사가 필요, 마지막에 수평 검사하면 점프중간에 벽과 겹칠일이없음
     
     if (player_y >= MAP_HEIGHT) init_stage();
 }
