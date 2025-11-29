@@ -260,16 +260,80 @@ void move_player(char input) {
             }
             break;
     }
-
-    if (next_x >= 0 && next_x < MAP_WIDTH && map[stage][player_y][next_x] != '#') player_x = next_x;
     
-    if (on_ladder && (input == 'w' || input == 's')) {
-        if(next_y >= 0 && next_y < MAP_HEIGHT && map[stage][next_y][player_x] != '#') {
-            player_y = next_y;
-            is_jumping = 0;
-            velocity_y = 0;
+    if (input == 'w' || input == 's' || on_ladder)
+    { // 꼭 사다리 위가 아니여도 위치조정하게하여 벽에 붙은 사다리로 이동할수있게함, onladder 조건 추가로 else 중력 적용 로직으로 가는거 막음, 사다리에 매달려있으니
+
+        char changed = 0;//w일때 2번적용됨, play가 둘다 업데이트되어서
+
+        if (on_ladder && (input == 'w' || input == 's')) {//기존 코드의 사다리위에서 상하동작 로직
+            if(next_y >= 0 && next_y < MAP_HEIGHT && map[stage][next_y][player_x] != '#') {
+                player_y = next_y;
+                is_jumping = 0;
+                velocity_y = 0;
+                changed = 1;
+            }
+        } 
+
+        if (input == 'w' && on_ladder)
+        { // 맨위 사다리위에서 w를 누를때
+            if (player_y - 1 >= 0 && map[stage][player_y - 1][player_x] == '#')
+            { // 한칸위만 벽일때, 통과가능
+                if (player_y - 2 >= 0 && map[stage][player_y - 2][player_x] != '#' && !changed)//w 연속 두번 적용 막기
+                {
+                    next_y = player_y - 2; // 맨위가 벽이여도 벽이 한칸이면 이동, 벽을 통과함(벽에 안끼게 하기위해서)
+                    player_y = next_y;     // 실제 위치값 업데이트
+                    is_jumping = 0;        // 점프가 아니여야 점프로직이 사다리로직 방해안함
+                    velocity_y = 0;        // 전역변수라 점프아니면 초기화하는게 오류방지에 좋음, 아니면 다음에 값이 남음
+                }
+                else
+                {
+                    next_y = player_y; // 한칸만 벽이여야 통과가능 벽 2칸 이상은 안됨, 이동 불가
+                    player_y = next_y;
+                    is_jumping = 0;
+                    velocity_y = 0;
+                }
+            }
         }
-    } 
+
+        else if (input == 's')
+        {
+            if (on_ladder && (player_y + 1 < MAP_HEIGHT) && map[stage][player_y + 1][player_x] == '#')
+            { // 1사다리 벽 사다리일때,플레이어가 1사다리에 있을때, 발밑의 벽1개넘어의 사다리를 타야할때
+                if ((player_y + 2 < MAP_HEIGHT) && map[stage][player_y + 2][player_x] == 'H')
+                {
+                    next_y = player_y + 2; // 벽을 넘어 사다리로 바로이동(벽끼임 방지)
+                    player_y = next_y;
+                    is_jumping = 0;
+                    velocity_y = 0;
+                }
+                else
+                {
+                    next_y = player_y; // 발밑이 벽 사다리형태가 아니면, 이동 불가
+                    player_y = next_y;
+                    is_jumping = 0;
+                    velocity_y = 0;
+                }
+            }
+            else if (!on_ladder && (player_y + 1 < MAP_HEIGHT) && map[stage][player_y + 1][player_x] == '#')
+            { // 발밑 벽 사다리일때, 플레이어가 벽1개넘어의 사다리를 타야할때
+                if ((player_y + 2 < MAP_HEIGHT) && map[stage][player_y + 2][player_x] == 'H')
+                {
+                    next_y = player_y + 2; // 벽을 넘어 사다리로 바로이동(벽끼임 방지)
+                    player_y = next_y;
+                    is_jumping = 0;
+                    velocity_y = 0;
+                }
+                else
+                {
+                    next_y = player_y; // 발밑이 벽 사다리형태가 아니면, 이동 불가
+                    player_y = next_y;
+                    is_jumping = 0;
+                    velocity_y = 0;
+                }
+            }
+        }
+    }
     else {
         if (is_jumping) {
             next_y = player_y + velocity_y;
@@ -321,6 +385,8 @@ void move_player(char input) {
             }
         }
     }
+
+    if (next_x >= 0 && next_x < MAP_WIDTH && map[stage][player_y][next_x] != '#') player_x = next_x;//상하로 움직있는 다음 수평을 검사하면 중간에 벽뚫릴일이없음, 수평검사해놓고 위로 올라가버리면 위의 칸 상황은 다를 수있기때문에 위에칸에서도 수평검사가 필요, 마지막에 수평 검사하면 점프중간에 벽과 겹칠일이없음
     
     if (player_y >= MAP_HEIGHT) init_stage();
 }
