@@ -68,6 +68,8 @@ void delay(int ms);//usleep쓰는 부분이 있어서 window와 호환과 재사
 int kbhit();//입력받는다고 게임 전체 멈추면 안되서 씀
 void show_title_screen();
 void show_ending_screen();
+void show_game_over_screen();
+
 
 int main() {
     srand(time(NULL));//랜덤함수의 시드값 설정
@@ -408,11 +410,11 @@ void move_enemies() {
 // 충돌 감지 로직
 void check_collisions() {
     for (int i = 0; i < enemy_count; i++) {
-        if (player_x == enemies[i].x && player_y == enemies[i].y) {
-            score = (score > 50) ? score - 50 : 0;
-            init_stage();
-            return;
+       if (player_x == enemies[i].x && player_y == enemies[i].y) {
+            show_game_over_screen();
+            exit(0);
         }
+
     }
     for (int i = 0; i < coin_count; i++) {
         if (!coins[i].collected && player_x == coins[i].x && player_y == coins[i].y) {
@@ -456,9 +458,12 @@ void delay(int ms)
 }
 void show_title_screen() {
     printf("\x1b[2J\x1b[H");
-    printf("========================================\n");
-    printf("              NUGURI GAME\n");
-    printf("========================================\n\n");
+    printf("    #   #  #  #   ###  #  #  ###   ###  \n");
+    printf("    ##  #  #  #  #     #  #  #  #   #   \n");
+    printf("    # # #  #  #  #  #  #  #  # ##   #   \n");
+    printf("    #  ##  #  #  #  #  #  #  # #    #   \n");
+    printf("    #   #   ##   ####   ##   # ##  ###  \n");
+
     printf("Press any key to start...\n");
 
 #ifdef _WIN32
@@ -470,9 +475,18 @@ void show_title_screen() {
 
 void show_ending_screen() {
     printf("\x1b[2J\x1b[H");
-    printf("=========================================\n");
-    printf("축하합니다! 모든 스테이지를 클리어했습니다!\n");
-    printf("=========================================\n\n");
+    printf("  #######    ###     ##     ##  #######\n");
+    printf(" ##     ##  ## ##    ###   ###  ##     \n");
+    printf(" ##   #### ##   ##   #### ####  ###### \n");
+    printf(" ##     ## #######   ## ### ##  ##     \n");
+    printf("  #######  ##   ##   ##     ##  #######\n");
+    printf("\n");
+    printf("  ####  ##     #####   ###    ######  #\n");
+    printf(" ##     ##     ##     ## ##   ##  ##  #\n");
+    printf(" ##     ##     ####   ## ##   ######  #\n");
+    printf(" ##     ##     ##     #####   ##  ##   \n");
+    printf("  ####  #####  #####  ## ##   ##   ## #\n");
+    printf("\n\n");
     printf("            최종점수 : %d\n", score);
 
 #ifdef _WIN32
@@ -481,3 +495,32 @@ void show_ending_screen() {
     getchar();
 #endif
 }
+
+void show_game_over_screen() {
+    printf("\x1b[2J\x1b[H");
+
+  printf("\n\n");
+printf("   #######    ###     ##     ##  ########   \n");
+printf("  ##     ##  ## ##    ###   ###  ##         \n");
+printf("  ##   #### ##   ##   #### ####  ######     \n");
+printf("  ##     ## #######   ## ### ##  ##         \n");
+printf("   #######  ##   ##   ##     ##  ########   \n");
+printf("\n");
+printf("   #######  ##     ## ########  ########    \n");
+printf("  ##     ## ##     ## ##        ##     ##   \n");
+printf("  ##     ## ##     ## ######    ########    \n");
+printf("  ##     ##  ##   ##  ##        ##   ##     \n");
+printf("   #######    ###    ########  ##     ##    \n");
+printf("\n\n");
+    printf("          최종 점수 : %d\n", score);
+    printf("     Press any key to exit...\n");
+
+
+
+#ifdef _WIN32
+    _getch();
+#else
+    getchar();
+#endif
+}
+
