@@ -70,10 +70,13 @@ int kbhit();//입력받는다고 게임 전체 멈추면 안되서 씀
 void show_title_screen();
 void show_ending_screen();
 void show_game_over_screen();
+void hide_cursor();
+void show_cursor();
 
 
 int main() {
     srand(time(NULL));//랜덤함수의 시드값 설정
+    hide_cursor();//커서 숨기기
     enable_raw_mode();
     show_title_screen(); 
     load_maps();//맵 불러오기
@@ -122,7 +125,8 @@ int main() {
         }
     }
 
-    disable_raw_mode();//??
+    show_cursor();//커서 보이기
+    disable_raw_mode();
     return 0;
 }
 
@@ -534,5 +538,13 @@ printf("\n\n");
 #else
     getchar();
 #endif
+}
+
+void hide_cursor(){
+    printf("\x1b[?25l");
+}
+
+void show_cursor(){
+    printf("\x1b[?25h");
 }
 
