@@ -218,9 +218,9 @@ void init_stage() {
 void draw_game() {
     printf("\x1b[H");
     printf("Heart: ");
-    printf("\x1b[1:7H");//이전화면 하트 지우기
-    printf("      ");//하트는 갱신되어야해서 지워줌, 아니면 이전 화면의 하트 잔상이 남음
-    printf("\x1b[1:7H");//다시 하트 그리기전에 위치 잡아주기
+    printf("\x1b[1;7H");//이전화면 하트 지우기
+    printf("       ");//하트는 갱신되어야해서 지워줌, 아니면 이전 화면의 하트 잔상이 남음
+    printf("\x1b[1;7H");//다시 하트 그리기전에 위치 잡아주기
     for(int i = 0; i < lives; i++){
         printf("♥ ");
     }
