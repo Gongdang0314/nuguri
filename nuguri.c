@@ -12,9 +12,9 @@
 #include <time.h>
 
 // 맵 및 게임 요소 정의 (수정된 부분)
-#define MAP_WIDTH 40  // 맵 너비를 40으로 변경
-#define MAP_HEIGHT 20
-#define MAX_STAGES 2
+// #define MAP_WIDTH 40  // 맵 너비를 40으로 변경
+// #define MAP_HEIGHT 20
+// #define MAX_STAGES 2
 #define MAX_ENEMIES 15 // 최대 적 개수 증가
 #define MAX_COINS 30   // 최대 코인 개수 증가
 
@@ -30,10 +30,14 @@ typedef struct {
 } Coin;
 
 // 전역 변수
-char map[MAX_STAGES][MAP_HEIGHT][MAP_WIDTH + 1];//3차원 배열 스테이지 마다 맵이 존재
+// char map[MAX_STAGES][MAP_HEIGHT][MAP_WIDTH + 1];//3차원 배열 스테이지 마다 맵이 존재
+char*** map = NULL;
 int player_x, player_y;//플레이어의 위치를 전역
 int stage = 0;//현재 스테이지
 int score = 0;// 현재 점수판
+int MAX_STAGES = 0;
+int MAP_WIDTH = 0;
+int MAP_HEIGHT = 0;
 int lives = 3;// 현재 남은 목숨;
 
 // 플레이어 상태
@@ -70,6 +74,9 @@ int kbhit();//입력받는다고 게임 전체 멈추면 안되서 씀
 void show_title_screen();
 void show_ending_screen();
 void show_game_over_screen();
+void load_map_size();//맵 크기 가져오는 함수
+void malloc_map();//맵 배열 malloc으로 만드는 함수
+void free_map();//맵 배열 malloc free해주는 함수
 void hide_cursor();
 void show_cursor();
 
@@ -78,7 +85,10 @@ int main() {
     srand(time(NULL));//랜덤함수의 시드값 설정
     hide_cursor();//커서 숨기기
     enable_raw_mode();
-    show_title_screen(); 
+    show_title_screen();
+    printf("\x1b[2J\x1b[H");//타이틀시작화면지우기
+    load_map_size();
+    malloc_map();
     load_maps();//맵 불러오기
     init_stage();//스테이지 초기화
 
@@ -127,6 +137,7 @@ int main() {
 
     show_cursor();//커서 보이기
     disable_raw_mode();
+    free_map();
     return 0;
 }
 
@@ -205,8 +216,11 @@ void init_stage() {
 
 // 게임 화면 그리기
 void draw_game() {
-    printf("\x1b[2J\x1b[H");
+    printf("\x1b[H");
     printf("Heart: ");
+    printf("\x1b[1:7H");//이전화면 하트 지우기
+    printf("      ");//하트는 갱신되어야해서 지워줌, 아니면 이전 화면의 하트 잔상이 남음
+    printf("\x1b[1:7H");//다시 하트 그리기전에 위치 잡아주기
     for(int i = 0; i < lives; i++){
         printf("♥ ");
     }
@@ -409,7 +423,11 @@ void move_player(char input) {
 void move_enemies() {
     for (int i = 0; i < enemy_count; i++) {
         int next_x = enemies[i].x + enemies[i].dir;
-        if (next_x < 0 || next_x >= MAP_WIDTH || map[stage][enemies[i].y][next_x] == '#' || (enemies[i].y + 1 < MAP_HEIGHT && map[stage][enemies[i].y + 1][next_x] == ' ')) {
+        if (next_x < 0 || next_x >= MAP_WIDTH || map[stage][enemies[i].y + 1][enemies[i].x] != '#' && (enemies[i].y + 1 < MAP_HEIGHT && map[stage][enemies[i].y + 1][next_x] == ' '))//공중에서 리젠된 X는 공중에서 왔다갔다하기
+        {
+            enemies[i].x = next_x;
+        }
+        else if (next_x < 0 || next_x >= MAP_WIDTH || map[stage][enemies[i].y][next_x] == '#' || (enemies[i].y + 1 < MAP_HEIGHT && map[stage][enemies[i].y + 1][next_x] == ' ')) {
             enemies[i].dir *= -1;
         } else {
             enemies[i].x = next_x;
@@ -526,7 +544,7 @@ printf("   #######  ##     ## ########  ########    \n");
 printf("  ##     ## ##     ## ##        ##     ##   \n");
 printf("  ##     ## ##     ## ######    ########    \n");
 printf("  ##     ##  ##   ##  ##        ##   ##     \n");
-printf("   #######     ###    ########  ##     ##   \n");
+printf("   #######    ###    ########  ##     ##    \n");
 printf("\n\n");
     printf("          최종 점수 : %d\n", score);
     printf("     Press any key to exit...\n");
@@ -540,6 +558,121 @@ printf("\n\n");
 #endif
 }
 
+//맵 크기중에 제일 큰거 저장, 스테이지 개수 저장
+void load_map_size() {
+    FILE *file = fopen("map.txt", "r");
+    if (!file) {
+        perror("map.txt 파일을 열 수 없습니다.");
+        exit(1);
+    }
+
+    char line[1000];//동적 할당을 위해 충분히 큰값을 너비로
+    int current_stage_height = 0;
+    int total_stages = 0;
+    int max_map_width = 0;
+    int max_map_height = 0;
+
+    while (fgets(line, sizeof(line), file)) {
+        line[strcspn(line, "\n\r")] = '\0';
+        int len = strlen(line);
+
+        if (len == 0) {//빈줄이면 다음 스테이지임
+            if (current_stage_height > 0) {
+                total_stages++;//스테이지 개수 추가
+                if (current_stage_height > max_map_height) {//맵의 최대 높이 찾기
+                    max_map_height = current_stage_height;
+                }
+                current_stage_height = 0;//새맵되어서 맵 높이 초기화
+            }
+            continue;
+        }
+
+        if (len > 0) {//높이마다 최대 너비 찾기 
+            current_stage_height++;
+            if (len > max_map_width) {
+                max_map_width = len;
+            }
+        }
+    }
+
+    fclose(file);// 자원 반환
+    
+    if (current_stage_height > 0) {// 마지막 줄 빈줄이없음 바로 map.txt의 마지막줄임, 스테이지 추가 시켜야함 이것도 맵임
+        total_stages++;
+        if (current_stage_height > max_map_height) {//맵 최대 높이 찾기
+            max_map_height = current_stage_height;
+        }
+    }
+    
+    //전역변수에 map.txt 가져온값 넣기
+    MAX_STAGES = total_stages;
+    MAP_WIDTH = max_map_width;
+    MAP_HEIGHT = max_map_height;
+}
+
+void malloc_map() {
+    map = (char***)malloc(MAX_STAGES * sizeof(char**));//스테이지 개수만큼 공간 잡은 배열
+    if (map == NULL) { 
+        perror("스테이지 배열 메모리 할당 실패"); 
+        exit(1); 
+    }
+
+    for (int s = 0; s < MAX_STAGES; s++) {
+        map[s] = (char**)malloc(MAP_HEIGHT * sizeof(char*));//맵 높이 만큼 공간 잡은 배열
+        if (map[s] == NULL) { 
+            perror("스테이지 맵 높이 배열 메모리 할당 실패");
+            
+            for (int i = 0; i < s; i++) {//할당된 반대로 해제해주기, 할당된거부터 해제하면 안쪽해제할때 할당된 메모리 위치 못찾음
+                free(map[i]);
+            }
+            free(map);
+            
+            exit(1); 
+        }
+
+        for (int r = 0; r < MAP_HEIGHT; r++) {
+            map[s][r] = (char*)malloc((MAP_WIDTH + 1) * sizeof(char));//맵 너비+1(널문자)만큼 공간잡은 배열, 
+            if (map[s][r] == NULL) { 
+                perror("맵 너비 배열 메모리 할당 실패");
+                
+                for (int j = 0; j < r; j++) {
+                    free(map[s][j]);
+                }
+                for (int i = 0; i <= s; i++) {
+                    free(map[i]);
+                }
+                free(map); 
+                
+                exit(1); 
+            }
+            memset(map[s][r], '\0', MAP_WIDTH + 1);//배열 전체널 문자로 초기화
+        }
+    }
+}
+
+void free_map() {
+    if (map == NULL) {//공간 안잡혀있다면 바로 return
+        return; 
+    }
+    
+    for (int s = 0; s < MAX_STAGES; s++) 
+    { 
+        if (map[s] != NULL)//공간 잡혀있으면 해제 
+        {
+            for (int r = 0; r < MAP_HEIGHT; r++) 
+            { 
+                if (map[s][r] != NULL) {
+                    free(map[s][r]);//맵 x축 해제
+                }
+            }
+            
+            free(map[s]);//맵 y축 해제
+        }
+    }
+    
+    free(map);//맵 Stage 해제
+}
+
 void hide_cursor(){
     printf("\x1b[?25l");
 }
@@ -547,4 +680,3 @@ void hide_cursor(){
 void show_cursor(){
     printf("\x1b[?25h");
 }
-
