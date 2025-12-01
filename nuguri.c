@@ -79,12 +79,20 @@ void malloc_map();//맵 배열 malloc으로 만드는 함수
 void free_map();//맵 배열 malloc free해주는 함수
 void hide_cursor();
 void show_cursor();
+void sound_beep_maker(int hz, int ms);//hz(헤르츠), ms(밀리세컨드)를 인자로 받아 비프음을 만드는 함수
+void sound_game_start();// 게임 시작시 비프 효과음을 출력
+void sound_coin();// 'C'획득시 비프 효과음을 출력
+void sound_hit();// 몬스터에게 맞고 살아있을 시 비프 효과음을 출력
+void sound_die();// 몬스터에게 맞고 죽을시 비프 효과음을 출력
+void sound_stage_clear();// 스테이지 클리어시 비프 효과음을 출력
+void sound_game_complete();// 게임을 완전히 클리어시 비프 효과음을 출력
 
 
 int main() {
     srand(time(NULL));//랜덤함수의 시드값 설정
     hide_cursor();//커서 숨기기
     enable_raw_mode();
+    sound_game_start();
     show_title_screen();
     printf("\x1b[2J\x1b[H");//타이틀시작화면지우기
     load_map_size();
@@ -127,8 +135,10 @@ int main() {
             stage++;
             score += 100;
             if (stage < MAX_STAGES) {
+                sound_stage_clear();
                 init_stage();
             } else {
+                sound_game_complete();
                 game_over = 1;
                 show_ending_screen();
             }
@@ -441,9 +451,11 @@ void check_collisions() {
        if (player_x == enemies[i].x && player_y == enemies[i].y) {
             lives--;
             if(lives <= 0){
+                sound_die();
                 show_game_over_screen();
                 exit(0);
             } else {
+                sound_hit();
                 init_stage();
                 return;
             }
@@ -452,6 +464,7 @@ void check_collisions() {
     }
     for (int i = 0; i < coin_count; i++) {
         if (!coins[i].collected && player_x == coins[i].x && player_y == coins[i].y) {
+            sound_coin();
             coins[i].collected = 1;
             score += 20;
         }
@@ -679,4 +692,80 @@ void hide_cursor(){
 
 void show_cursor(){
     printf("\x1b[?25h");
+}
+
+
+//비프음으로 효과음 maker
+void sound_beep_maker(int hz, int ms) {
+#ifdef _WIN32
+    Beep(hz, ms);
+#else
+    //sudo apt install beep 필요
+    //error : could not any device -> sudo modprobe (-r) pcspkr
+    char command[100];
+    
+    snprintf(command, sizeof(command), "beep -f %d -l %d 2>/dev/null", hz, ms);
+    
+    system(command);
+#endif
+}
+
+// 게임 시작 시 효과음
+void sound_game_start() {
+    sound_beep_maker(784, 80);  
+    delay(10); 
+    sound_beep_maker(880, 80);  
+    delay(10);
+    sound_beep_maker(1046, 80); 
+    delay(10);
+    sound_beep_maker(1318, 80); 
+    delay(10); 
+    sound_beep_maker(1568, 150); 
+}
+// 동전 먹을 때 효과음
+void sound_coin() {
+    sound_beep_maker(1760, 80); 
+    delay(10); 
+    sound_beep_maker(2093, 120); 
+}
+
+// 타격시 효과음
+void sound_hit() {
+    sound_beep_maker(800, 300); 
+}
+
+// 죽을 때 효과음
+void sound_die() {
+    sound_beep_maker(800, 600); 
+    delay(5); 
+    sound_beep_maker(200, 400); 
+}
+
+// 스테이지 클리어시 효과음
+void sound_stage_clear() {
+    sound_beep_maker(1046, 150); 
+    delay(50); 
+    
+    sound_beep_maker(1318, 150); 
+    delay(50);
+    
+    sound_beep_maker(1568, 200); 
+    delay(50);
+    
+    sound_beep_maker(2093, 400); 
+}
+
+//게임 완전 클리어시 효과음
+void sound_game_complete() {
+    sound_beep_maker(523, 120);  
+    delay(50); 
+    sound_beep_maker(659, 120);  
+    delay(50);
+    sound_beep_maker(784, 150);  
+    delay(50);
+    sound_beep_maker(1046, 150); 
+    delay(50); 
+    sound_beep_maker(1318, 200); 
+    delay(100); 
+    sound_beep_maker(2093, 700); 
 }
