@@ -34,6 +34,7 @@ char map[MAX_STAGES][MAP_HEIGHT][MAP_WIDTH + 1];//3차원 배열 스테이지 �
 int player_x, player_y;//플레이어의 위치를 전역
 int stage = 0;//현재 스테이지
 int score = 0;// 현재 점수판
+int lives = 3;// 현재 남은 목숨;
 
 // 플레이어 상태
 int is_jumping = 0;//점프키 누르면 여기에 담았다가 점프 동작
@@ -201,6 +202,11 @@ void init_stage() {
 // 게임 화면 그리기
 void draw_game() {
     printf("\x1b[2J\x1b[H");
+    printf("Heart: ");
+    for(int i = 0; i < lives; i++){
+        printf("♥ ");
+    }
+    printf("\n");
     printf("Stage: %d | Score: %d\n", stage + 1, score);
     printf("조작: ← → (이동), ↑ ↓ (사다리), Space (점프), q (종료)\n");
 
@@ -411,8 +417,14 @@ void move_enemies() {
 void check_collisions() {
     for (int i = 0; i < enemy_count; i++) {
        if (player_x == enemies[i].x && player_y == enemies[i].y) {
-            show_game_over_screen();
-            exit(0);
+            lives--;
+            if(lives <= 0){
+                show_game_over_screen();
+                exit(0);
+            } else {
+                init_stage();
+                return;
+            }
         }
 
     }
