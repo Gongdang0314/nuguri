@@ -39,6 +39,9 @@ int MAX_STAGES = 0;
 int MAP_WIDTH = 0;
 int MAP_HEIGHT = 0;
 int lives = 3;// 현재 남은 목숨;
+#ifdef _WIN32
+HANDLE hTimer = NULL;//윈도우용 타이머
+#endif
 
 // 플레이어 상태
 int is_jumping = 0;//점프키 누르면 여기에 담았다가 점프 동작
@@ -89,6 +92,9 @@ void sound_game_complete();// 게임을 완전히 클리어시 비프 효과음�
 
 
 int main() {
+    #ifdef _WIN32
+    hTimer = CreateWaitableTimer(NULL, TRUE, NULL);    
+    #endif
     srand(time(NULL));//랜덤함수의 시드값 설정
     hide_cursor();//커서 숨기기
     enable_raw_mode();
@@ -108,12 +114,21 @@ int main() {
     int game_over = 0;// 아직 게임 오버 안됨 
 
     while (!game_over && stage < MAX_STAGES) {// 게임오버 안됬고 스테이지 끝까지 깨서 겜클리어 안했으면 게임 돌리기,q일경우 무한 반복문 빠져나감 겜 종료
+        #ifdef _WIN32
         if (kbhit()) {//사용자가 입력하면
             c = _getch();
             if (c == 'q') {//q일경우에 겜 종료
                 game_over = 1;
                 continue;
             }  
+        #else 
+        if(kbhit()) {//사용자가 입력하면
+            c = getchar();
+            if (c == 'q') {//q일경우에 겜 종료
+                game_over = 1;
+                continue;
+            }
+        #endif
         #ifdef _WIN32
             // 1. 윈도우 환경 처리 (특수 키 시퀀스: 0x00 또는 0xE0으로 시작)
             if (c == '\0' || c == '\xe0') { 
@@ -242,18 +257,7 @@ void init_stage() {
 
 // 게임 화면 그리기
 void draw_game() {
-    printf("\x1b[H");
-    printf("Heart: ");
-    printf("\x1b[1;7H");//이전화면 하트 지우기
-    printf("       ");//하트는 갱신되어야해서 지워줌, 아니면 이전 화면의 하트 잔상이 남음
-    printf("\x1b[1;7H");//다시 하트 그리기전에 위치 잡아주기
-    for(int i = 0; i < lives; i++){
-        printf("♥ ");
-    }
-    printf("\n");
-    printf("Stage: %d | Score: %d\n", stage + 1, score);
-    printf("조작: ← → (이동), ↑ ↓ (사다리), Space (점프), q (종료)\n");
-
+    
     char display_map[MAP_HEIGHT][MAP_WIDTH + 1];
     for(int y=0; y < MAP_HEIGHT; y++) {
         for(int x=0; x < MAP_WIDTH; x++) {
@@ -278,12 +282,38 @@ void draw_game() {
 
     display_map[player_y][player_x] = 'P';
 
-    for (int y = 0; y < MAP_HEIGHT; y++) {
-        for(int x=0; x< MAP_WIDTH; x++){
-            printf("%c", display_map[y][x]);
-        }
-        printf("\n");
+    
+    char map_array[154 + (MAP_HEIGHT * (MAP_WIDTH + 1)) + 1];//한번에 출력하기 위한 버퍼, 154는 맵제외하고의 스트링 길이, 널문자용 + 1
+    int current_length = 0;
+    //스트링 길이 13개
+    current_length += sprintf(map_array + current_length,"\x1b[HHeart: ");//널문자제외하고 sprintf개수 반환값 > 널문자위에 덮어써서 연속적으로 출력
+    //스트링 길이 9개
+    current_length += sprintf(map_array + current_length,"\x1b[1;7H");
+    //스트링 길이 7개
+    current_length += sprintf(map_array + current_length,"       "); 
+    //스트링 길이 9개
+    current_length += sprintf(map_array + current_length,"\x1b[1;7H");
+    
+    for(int i = 0; i < lives; i++){
+        //스트링 길이 4*3 = 12개(하트 3바이트)
+        current_length += sprintf(map_array + current_length, "♥ ");
     }
+    //스트링 길이 1개 개행문자는 1개 취급
+    current_length += sprintf(map_array + current_length, "\n");
+    //스트링 길이 최소 20+(9최소 1자리는 차지함 정수) 개(정수 범위 21억정도 10자리 차지해서), 최대 29개
+    current_length += sprintf(map_array + current_length, "Stage: %d | Score: %d\n", stage + 1, score);
+    //스트링 길이 한글 3바이트씩 * 11글자 = 33개, 화살표 3 * 4개 = 12개, 나머지 문자 29개
+    current_length += sprintf(map_array + current_length, "조작: ← → (이동), ↑ ↓ (사다리), Space (점프), q (종료)\n");
+    //총 13+9+7+9+12+1+29+33+12+29 = 154바이트 추가 필요
+    for (int y = 0; y < MAP_HEIGHT; y++) {//맵에 값넣기
+        for(int x=0; x< MAP_WIDTH; x++){
+            map_array[current_length++] = display_map[y][x];
+        }
+        map_array[current_length++] = '\n';
+    }
+    map_array[current_length] = '\0';//printf는 널문자 만날때까지 읽다가 출력함, 널문자안만나면 안됨 %s형식자라서
+
+    printf("%s", map_array);
 }
 
 // 게임 상태 업데이트
@@ -422,6 +452,39 @@ void move_player(char input) {
                     }
                 }
             }
+
+            if (velocity_y < 0)// 점프할때는 2칸 한번에 이동해서 검사못함, 떨어질때는 한칸씩 떨어져서 상관없음, X랑 겹치면 사망처리
+            { 
+                for (int i = 1; i <= -velocity_y && (player_y - i) >= 0; i++)
+                {
+                    if (map[stage][player_y - i][player_x] == 'X')
+                    {
+                        next_y = player_y - i;
+                        is_jumping = 0;
+                        velocity_y = 0;
+                    }
+                }
+            }
+
+            if (velocity_y < 0)// 점프할때, 2칸 한번에 이동, C검사 못함 경로는 안막아야함
+                for (int i = 1; i <= -velocity_y && (player_y - i) >= 0; i++)//점프할때 경로의 코인 모두 검사
+                {
+                    if (map[stage][player_y - i][player_x] == 'C')
+                    {
+                        sound_coin();
+                        for (int j = 0; j < coin_count; j++)
+                        {
+                            if (!coins[j].collected && coins[j].x == player_x && coins[j].y == player_y - i)
+                            {
+                                coins[j].collected = 1; //코인 수집됨, 수집된 여부로 다음화면에서 사라짐
+                                break;
+                            }
+                        }
+                        is_jumping = 0;
+                        velocity_y = 0;
+                        score += 20;
+                    }
+                }
             
             if (next_y < MAP_HEIGHT) {
                 player_y = next_y;
@@ -514,7 +577,13 @@ int kbhit() {
 void delay(int ms)
 {
 #ifdef _WIN32
-  Sleep(ms);
+    LARGE_INTEGER sleep_time;
+    sleep_time.QuadPart = -10000LL * ms;//-로 지난시간을 표시함(측정시작부터의 차이값) 기본단위 나노초(10의 7승 분의 1초) 밀리초(10의 3승 분의 1초)
+
+    SetWaitableTimer(hTimer, &sleep_time, 0, NULL, NULL, FALSE);//꼭 LARGE_INTEGER 구조체를 받음, union이라 모든 멤버변수는 같은 메모리공간을 씀 그래서 &연산자로 정확히 읽을수있음
+
+    WaitForSingleObject(hTimer, INFINITE);//타이머 끝날때까지 프로그램은 대기
+    
 #else
   usleep(ms * 1000); // <unistd.h>에 선언된 usleep의 단위인 마이크로초에 * 1000 = 밀리초
 #endif
