@@ -717,6 +717,7 @@ void sound_beep_maker(int hz, int ms) {
     Beep(hz, ms);
 #else
     printf("\a");
+    fflush(stdout);
 #endif
 }
 
@@ -733,10 +734,9 @@ void sound_game_start() {
     sound_beep_maker(1568, 150); 
 }
 // 동전 먹을 때 효과음
-void sound_coin() {
-    sound_beep_maker(1760, 80); 
-    delay(10); 
-    sound_beep_maker(2093, 120); 
+void sound_coin() { // 코인 먹을 때 일시 멈춤 현상 발생 때문에 Beep에서 "\a" 사용으로 변경
+    printf("\a");
+    fflush(stdout); 
 }
 
 // 타격시 효과음
