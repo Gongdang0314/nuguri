@@ -109,21 +109,37 @@ int main() {
 
     while (!game_over && stage < MAX_STAGES) {// 게임오버 안됬고 스테이지 끝까지 깨서 겜클리어 안했으면 게임 돌리기,q일경우 무한 반복문 빠져나감 겜 종료
         if (kbhit()) {//사용자가 입력하면
-            c = getchar();
+            c = _getch();
             if (c == 'q') {//q일경우에 겜 종료
                 game_over = 1;
                 continue;
+            }  
+        #ifdef _WIN32
+            // 1. 윈도우 환경 처리 (특수 키 시퀀스: 0x00 또는 0xE0으로 시작)
+            if (c == '\0' || c == '\xe0') { 
+                // 윈도우 방향키의 두 번째 코드만 읽고 처리
+                switch (_getch()) { 
+                    case 72: c = 'w'; break; // Up (Windows Key Code)
+                    case 80: c = 's'; break; // Down
+                    case 77: c = 'd'; break; // Rightx
+                    case 75: c = 'a'; break; // Left
+                    default: c = '\0'; break;
+                }
             }
-            if (c == '\x1b') {//16진수로 x가 16진수 표시, 1(16) + b(11) = 27 -> escape, Ansi escape code 사용
-                getchar(); // '['
-                switch (getchar()) {
-                    case 'A': c = 'w'; break; // Up
+        #else
+        // 2. 리눅스/macOS 환경 처리 (ANSI 이스케이프 시퀀스: \x1b로 시작)
+            if (c == '\x1b') { // 16진수 1b (Escape, 27)
+                getchar();
+                switch (getchar()) { 
+                    case 'A': c = 'w'; break; // Up (ANSI Code)
                     case 'B': c = 's'; break; // Down
                     case 'C': c = 'd'; break; // Right
                     case 'D': c = 'a'; break; // Left
+                    default: c = '\0'; break;
                 }
-            }
-        } else {
+            } 
+        #endif
+        }else {
             c = '\0';
         }
 
