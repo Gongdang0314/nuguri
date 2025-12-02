@@ -700,13 +700,7 @@ void sound_beep_maker(int hz, int ms) {
 #ifdef _WIN32
     Beep(hz, ms);
 #else
-    //sudo apt install beep 필요
-    //error : could not any device -> sudo modprobe (-r) pcspkr
-    char command[100];
-    
-    snprintf(command, sizeof(command), "beep -f %d -l %d 2>/dev/null", hz, ms);
-    
-    system(command);
+    printf("\a");
 #endif
 }
 
