@@ -471,18 +471,15 @@ void move_player(char input) {
                 {
                     if (map[stage][player_y - i][player_x] == 'C')
                     {
-                        sound_coin();
                         for (int j = 0; j < coin_count; j++)
                         {
                             if (!coins[j].collected && coins[j].x == player_x && coins[j].y == player_y - i)
-                            {
+                            {   
+                                sound_coin();
                                 coins[j].collected = 1; //코인 수집됨, 수집된 여부로 다음화면에서 사라짐
-                                break;
+                                score += 20;
                             }
                         }
-                        is_jumping = 0;
-                        velocity_y = 0;
-                        score += 20;
                     }
                 }
             
