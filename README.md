@@ -41,7 +41,6 @@ https://github.com/Gongdang0314/nuguri
 | :---: | :---: |
 | <img width="1723" height="914" alt="image" src="https://github.com/user-attachments/assets/7d770270-4c63-4e65-9620-1f8a85de6f16" /> | <img width="1722" height="919" alt="image" src="https://github.com/user-attachments/assets/a19b0238-1009-4785-87e3-73faeee139e9" /> |
 | **스테이지 1** | **스테이지 2** |
-| :---: | :---: |
 | <img width="1729" height="914" alt="image" src="https://github.com/user-attachments/assets/77b0c9ac-7f80-414b-8705-e51b6a295f6a" /> | <img width="1727" height="919" alt="image" src="https://github.com/user-attachments/assets/ab269295-b543-4e50-a149-d4ccbb7d1fa3" /> |
 
 ## 5. 개발 중 발생한 OS 호환성 문제와 해결 과정
