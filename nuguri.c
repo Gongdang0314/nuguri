@@ -209,7 +209,7 @@ void load_maps() {
         exit(1);
     }
     int s = 0, r = 0;
-    char line[MAP_WIDTH + 2]; // 버퍼 크기는 MAP_WIDTH에 따라 자동 조절됨
+    char line[MAP_WIDTH + 3]; // \r, \n, 널문자에 대비해 맵 사이즈에서 +3 해줌
     while (s < MAX_STAGES && fgets(line, sizeof(line), file)) {
         if ((line[0] == '\n' || line[0] == '\r') && r > 0) {
             s++;
