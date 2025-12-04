@@ -506,7 +506,7 @@ void move_player(char input) {
 void move_enemies() {
     for (int i = 0; i < enemy_count; i++) {
         int next_x = enemies[i].x + enemies[i].dir;
-        if (next_x < 0 || next_x >= MAP_WIDTH || map[stage][enemies[i].y + 1][enemies[i].x] != '#' && (enemies[i].y + 1 < MAP_HEIGHT && map[stage][enemies[i].y + 1][next_x] == ' '))//공중에서 리젠된 X는 공중에서 왔다갔다하기
+        if (map[stage][enemies[i].y + 1][enemies[i].x] != '#' && (next_x < MAP_WIDTH && map[stage][enemies[i].y][next_x] != '#'))//공중에서 리젠된 X는 공중에서 왔다갔다하기
         {
             enemies[i].x = next_x;
         }
