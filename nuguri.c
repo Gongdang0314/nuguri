@@ -55,8 +55,7 @@ Coin coins[MAX_COINS];//현재 맵에 흩뿌려져있는 코인 개수 30개
 int coin_count = 0;//남은 코인수인가, 먹은 코인수
 
 #ifdef _WIN32
-DWORD orig_console;
-HANDLE hStdin;
+// 윈도우 환경에서는 _getch() 함수가 raw_mode를 수행하기 때문에 터미널 설정이 불필요
 #else
 // 터미널 설정
 struct termios orig_termios;//현재 터미널 설정을 저장, 초기화 안됨
@@ -185,19 +184,14 @@ int main() {
 // 터미널 Raw 모드 활성화/비활성화
 void disable_raw_mode() { 
 #ifdef _WIN32
-    SetConsoleMode(hStdin, orig_console);
+// 윈도우 환경에서는 _getch() 함수가 raw_mode를 수행하기 때문에 터미널 설정이 불필요
 #else
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios); 
 #endif
 }
 void enable_raw_mode() {
 #ifdef _WIN32
-    hStdin = GetStdHandle(STD_INPUT_HANDLE);
-    GetConsoleMode(hStdin, &orig_console);
-    atexit(disable_raw_mode);
-    DWORD raw_mode = orig_console;
-    raw_mode &= ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT);
-    SetConsoleMode(hStdin, raw_mode);
+// 윈도우 환경에서는 _getch() 함수가 raw_mode를 수행하기 때문에 터미널 설정이 불필요
 #else
     tcgetattr(STDIN_FILENO, &orig_termios);
     atexit(disable_raw_mode);
