@@ -92,7 +92,8 @@ void sound_game_complete();// 게임을 완전히 클리어시 비프 효과음�
 
 int main() {
     #ifdef _WIN32
-    hTimer = CreateWaitableTimer(NULL, TRUE, NULL);    
+    SetConsoleOutputCP(CP_UTF8); // 콘솔 출력 인코딩을 UTF-8로 설정
+    hTimer = CreateWaitableTimer(NULL, TRUE, NULL); 
     #endif
     srand(time(NULL));//랜덤함수의 시드값 설정
     hide_cursor();//커서 숨기기
@@ -104,10 +105,6 @@ int main() {
     malloc_map();
     load_maps();//맵 불러오기
     init_stage();//스테이지 초기화
-
-    #ifdef _WIN32
-        SetConsoleOutputCP(CP_UTF8); // 콘솔 출력 인코딩을 UTF-8로 설정
-    #endif
 
     char c = '\0';// 널문자
     int game_over = 0;// 아직 게임 오버 안됨 
@@ -178,6 +175,11 @@ int main() {
     show_cursor();//커서 보이기
     disable_raw_mode();
     free_map();
+    #ifdef _WIN32
+    if (hTimer != NULL) {
+        CloseHandle(hTimer);
+    }
+    #endif
     return 0;
 }
 
@@ -556,6 +558,10 @@ void check_collisions() {
             if(lives <= 0){
                 sound_die();
                 show_game_over_screen();
+                free_map();
+                #ifdef _WIN32
+                if(hTimer != NULL) CloseHandle(hTimer);
+                #endif
                 exit(0);
             } else {
                 sound_hit();
@@ -577,7 +583,7 @@ void check_collisions() {
 // 비동기 키보드 입력 확인
 int kbhit() {
 #ifdef _WIN32
-    _kbhit();
+    return _kbhit();
 #else
     struct termios oldt, newt;
     int ch;
@@ -745,6 +751,9 @@ void malloc_map() {
             perror("스테이지 맵 높이 배열 메모리 할당 실패");
             
             for (int i = 0; i < s; i++) {//할당된 반대로 해제해주기, 할당된거부터 해제하면 안쪽해제할때 할당된 메모리 위치 못찾음
+                for(int j = 0; j < MAP_HEIGHT; j++){
+                    free(map[i][j]); //각 행 해제
+                }
                 free(map[i]);
             }
             free(map);
@@ -760,7 +769,11 @@ void malloc_map() {
                 for (int j = 0; j < r; j++) {
                     free(map[s][j]);
                 }
+                free(map[s]);
                 for (int i = 0; i <= s; i++) {
+                    for(int j = 0; j < MAP_HEIGHT; j++){
+                        free(map[i][j]);
+                    }
                     free(map[i]);
                 }
                 free(map); 
