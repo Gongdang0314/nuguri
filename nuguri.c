@@ -450,9 +450,9 @@ void move_player(char input) {
                 }
             }
 
-            if (velocity_y < 0)// 점프할때는 2칸 한번에 이동해서 검사못함, 떨어질때는 한칸씩 떨어져서 상관없음, X랑 겹치면 사망처리
+            if (velocity_y < 0)// 점프할때는 2칸 한번에 이동해서 검사못함, X랑 겹치면 사망처리
             { 
-                for (int i = 1; i <= -velocity_y && (player_y - i) >= 0; i++)
+                for (int i = 1; i <= -velocity_y; i++)
                 {
                     if (map[stage][player_y - i][player_x] == 'X')
                     {
@@ -462,15 +462,45 @@ void move_player(char input) {
                     }
                 }
             }
+            
+            if (velocity_y > 0)// 떨어질때는 2칸 한번에 이동해서 검사못함, X랑 겹치면 사망처리
+            { 
+                for (int i = 1; i <= velocity_y; i++)
+                {
+                    if (map[stage][player_y + i][player_x] == 'X')
+                    {
+                        next_y = player_y + i;
+                        is_jumping = 0;
+                        velocity_y = 0;
+                    }
+                }
+            }
 
             if (velocity_y < 0)// 점프할때, 2칸 한번에 이동, C검사 못함 경로는 안막아야함
-                for (int i = 1; i <= -velocity_y && (player_y - i) >= 0; i++)//점프할때 경로의 코인 모두 검사
+                for (int i = 1; i <= -velocity_y; i++)//점프할때 경로의 코인 모두 검사
                 {
                     if (map[stage][player_y - i][player_x] == 'C')
                     {
                         for (int j = 0; j < coin_count; j++)
                         {
                             if (!coins[j].collected && coins[j].x == player_x && coins[j].y == player_y - i)
+                            {   
+                                sound_coin();
+                                coins[j].collected = 1; //코인 수집됨, 수집된 여부로 다음화면에서 사라짐
+                                score += 20;
+                            }
+                        }
+                    }
+                }
+
+            if (velocity_y > 0)// 떨어질때, 2칸 한번에 이동, C검사 못함 경로는 안막아야함
+                for (int i = 1; i <= velocity_y; i++)//떨어질때 경로의 코인 모두 검사
+                {
+                    if (map[stage][player_y + i][player_x] == 'C')
+                    {
+                        for (int j = 0; j < coin_count; j++)
+                        {
+                            if (!coins[j].collected && coins[j].x == player_x && coins[j].y == player_y + i)
                             {   
                                 sound_coin();
                                 coins[j].collected = 1; //코인 수집됨, 수집된 여부로 다음화면에서 사라짐
@@ -506,7 +536,7 @@ void move_player(char input) {
 void move_enemies() {
     for (int i = 0; i < enemy_count; i++) {
         int next_x = enemies[i].x + enemies[i].dir;
-        if (map[stage][enemies[i].y + 1][enemies[i].x] != '#' && (next_x < MAP_WIDTH && map[stage][enemies[i].y][next_x] != '#'))//공중에서 리젠된 X는 공중에서 왔다갔다하기
+        if (next_x < 0 || next_x >= MAP_WIDTH || map[stage][enemies[i].y + 1][enemies[i].x] != '#' && (enemies[i].y + 1 < MAP_HEIGHT && map[stage][enemies[i].y + 1][next_x] == ' '))//공중에서 리젠된 X는 공중에서 왔다갔다하기
         {
             enemies[i].x = next_x;
         }
