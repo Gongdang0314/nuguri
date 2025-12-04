@@ -243,7 +243,10 @@ void init_stage() {
                 enemies[enemy_count] = (Enemy){x, y, (rand() % 2) * 2 - 1};
                 enemy_count++;
             } else if (cell == 'C' && coin_count < MAX_COINS) {
-                coins[coin_count++] = (Coin){x, y, 0};
+                if(lives == 3 || coins[coin_count].collected != 1){
+                    coins[coin_count] = (Coin){x, y, 0};
+                }
+                coin_count++;
             }
         }
     }
