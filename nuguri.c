@@ -11,17 +11,12 @@
 #include <fcntl.h>
 #include <time.h>
 
-// 맵 및 게임 요소 정의 (수정된 부분)
-// #define MAP_WIDTH 40  // 맵 너비를 40으로 변경
-// #define MAP_HEIGHT 20
-// #define MAX_STAGES 2
-#define MAX_ENEMIES 15 // 최대 적 개수 증가
-#define MAX_COINS 30   // 최대 코인 개수 증가
+#define MAX_ENEMIES 15
+#define MAX_COINS 30 
 
-// 구조체 정의
 typedef struct {
     int x, y;
-    int dir; // 1: right, -1: left
+    int dir;
 } Enemy;
 
 typedef struct {
@@ -29,123 +24,114 @@ typedef struct {
     int collected;
 } Coin;
 
-// 전역 변수
-// char map[MAX_STAGES][MAP_HEIGHT][MAP_WIDTH + 1];//3차원 배열 스테이지 마다 맵이 존재
 char*** map = NULL;
-int player_x, player_y;//플레이어의 위치를 전역
-int stage = 0;//현재 스테이지
-int score = 0;// 현재 점수판
+int player_x, player_y;
+int stage = 0;
+int score = 0;
 int MAX_STAGES = 0;
 int MAP_WIDTH = 0;
 int MAP_HEIGHT = 0;
-int lives = 3;// 현재 남은 목숨;
+int lives = 3;
 #ifdef _WIN32
-HANDLE hTimer = NULL;//윈도우용 타이머
+HANDLE hTimer = NULL;
 #endif
 
-// 플레이어 상태
-int is_jumping = 0;//점프키 누르면 여기에 담았다가 점프 동작
-int velocity_y = 0;// y방향 속도
-int on_ladder = 0;// 사다리 탔는지 안탔는지 표시
+int is_jumping = 0;
+int velocity_y = 0;
+int on_ladder = 0;
 
-// 게임 객체
-Enemy enemies[MAX_ENEMIES];//적의 수만큼 다른 위치로 적들 소환 적 15마리
-int enemy_count = 0;//현재 남은 적, 현재 해치운 적들수
-Coin coins[MAX_COINS];//현재 맵에 흩뿌려져있는 코인 개수 30개
-int coin_count = 0;//남은 코인수인가, 먹은 코인수
+Enemy enemies[MAX_ENEMIES];
+int enemy_count = 0;
+Coin coins[MAX_COINS];
+int coin_count = 0;
 
 #ifdef _WIN32
-// 윈도우 환경에서는 _getch() 함수가 raw_mode를 수행하기 때문에 터미널 설정이 불필요
+// _getch
 #else
-// 터미널 설정
-struct termios orig_termios;//현재 터미널 설정을 저장, 초기화 안됨
+struct termios orig_termios;
 #endif
 
-// 함수 선언
 void disable_raw_mode();
 void enable_raw_mode();
-void load_maps();//맵 로드 함수
-void init_stage();//stage 초기화 함수, 클리어시나 처음 게임 시작할때 작동
-void draw_game();//게임 그리기, 게임판 그리기
-void update_game(char input);//화면 갱신
-void move_player(char input);// player의 입력을 받아서 그에 맞게 플레이어를 움직여주는 함수
-void move_enemies();//적들의 구조체 내부 정보에 의거하여 적들이 움직이게 하는 함수
-void check_collisions();//충돌검사해서 지나갈수있나 아니면 아이템 먹기 플레이어 사망
-void delay(int ms);//usleep쓰는 부분이 있어서 window와 호환과 재사용성을 위한 함수
-int kbhit();//입력받는다고 게임 전체 멈추면 안되서 씀
+void load_maps();
+void init_stage();
+void draw_game();
+void update_game(char input);
+void move_player(char input);
+void move_enemies();
+void check_collisions();
+void delay(int ms);
+int kbhit();
 void show_title_screen();
 void show_ending_screen();
 void show_game_over_screen();
-void load_map_size();//맵 크기 가져오는 함수
-void malloc_map();//맵 배열 malloc으로 만드는 함수
-void free_map();//맵 배열 malloc free해주는 함수
+void load_map_size();
+void malloc_map();
+void free_map();
 void hide_cursor();
 void show_cursor();
-void sound_beep_maker(int hz, int ms);//hz(헤르츠), ms(밀리세컨드)를 인자로 받아 비프음을 만드는 함수
-void sound_game_start();// 게임 시작시 비프 효과음을 출력
-void sound_coin();// 'C'획득시 비프 효과음을 출력
-void sound_hit();// 몬스터에게 맞고 살아있을 시 비프 효과음을 출력
-void sound_die();// 몬스터에게 맞고 죽을시 비프 효과음을 출력
-void sound_stage_clear();// 스테이지 클리어시 비프 효과음을 출력
-void sound_game_complete();// 게임을 완전히 클리어시 비프 효과음을 출력
+void sound_beep_maker(int hz, int ms);
+void sound_game_start();
+void sound_coin();
+void sound_hit();
+void sound_die();
+void sound_stage_clear();
+void sound_game_complete();
 
 
 int main() {
     #ifdef _WIN32
-    SetConsoleOutputCP(CP_UTF8); // 콘솔 출력 인코딩을 UTF-8로 설정
+    SetConsoleOutputCP(CP_UTF8);
     hTimer = CreateWaitableTimer(NULL, TRUE, NULL); 
     #endif
-    srand(time(NULL));//랜덤함수의 시드값 설정
-    hide_cursor();//커서 숨기기
+    srand(time(NULL));
+    hide_cursor();
     enable_raw_mode();
     sound_game_start();
     show_title_screen();
-    printf("\x1b[2J\x1b[H");//타이틀시작화면지우기
+    printf("\x1b[2J\x1b[H");
     load_map_size();
     malloc_map();
-    load_maps();//맵 불러오기
-    init_stage();//스테이지 초기화
+    load_maps();
+    init_stage();
 
-    char c = '\0';// 널문자
-    int game_over = 0;// 아직 게임 오버 안됨 
+    char c = '\0';
+    int game_over = 0;
 
-    while (!game_over && stage < MAX_STAGES) {// 게임오버 안됬고 스테이지 끝까지 깨서 겜클리어 안했으면 게임 돌리기,q일경우 무한 반복문 빠져나감 겜 종료
+    while (!game_over && stage < MAX_STAGES) {
         #ifdef _WIN32
-        if (kbhit()) {//사용자가 입력하면
+        if (kbhit()) {
             c = _getch();
-            if (c == 'q') {//q일경우에 겜 종료
+            if (c == 'q') {
                 game_over = 1;
                 continue;
             }  
         #else 
-        if(kbhit()) {//사용자가 입력하면
+        if(kbhit()) {
             c = getchar();
-            if (c == 'q') {//q일경우에 겜 종료
+            if (c == 'q') {
                 game_over = 1;
                 continue;
             }
         #endif
         #ifdef _WIN32
-            // 1. 윈도우 환경 처리 (특수 키 시퀀스: 0x00 또는 0xE0으로 시작)
             if (c == '\0' || c == '\xe0') { 
-                // 윈도우 방향키의 두 번째 코드만 읽고 처리
                 switch (_getch()) { 
-                    case 72: c = 'w'; break; // Up (Windows Key Code)
-                    case 80: c = 's'; break; // Down
-                    case 77: c = 'd'; break; // Rightx
-                    case 75: c = 'a'; break; // Left
+                    case 72: c = 'w'; break;
+                    case 80: c = 's'; break;
+                    case 77: c = 'd'; break;
+                    case 75: c = 'a'; break;
                     default: c = '\0'; break;
                 }
             }
         #else
-        // 2. 리눅스/macOS 환경 처리 (ANSI 이스케이프 시퀀스: \x1b로 시작)
-            if (c == '\x1b') { // 16진수 1b (Escape, 27)
+            if (c == '\x1b') {
                 getchar();
                 switch (getchar()) { 
-                    case 'A': c = 'w'; break; // Up (ANSI Code)
-                    case 'B': c = 's'; break; // Down
-                    case 'C': c = 'd'; break; // Right
-                    case 'D': c = 'a'; break; // Left
+                    case 'A': c = 'w'; break;
+                    case 'B': c = 's'; break;
+                    case 'C': c = 'd'; break;
+                    case 'D': c = 'a'; break;
                     default: c = '\0'; break;
                 }
             } 
@@ -163,6 +149,7 @@ int main() {
             score += 100;
             if (stage < MAX_STAGES) {
                 sound_stage_clear();
+                memset(coins, 0, sizeof(coins));
                 init_stage();
             } else {
                 sound_game_complete();
@@ -172,7 +159,7 @@ int main() {
         }
     }
 
-    show_cursor();//커서 보이기
+    show_cursor();
     disable_raw_mode();
     free_map();
     #ifdef _WIN32
@@ -183,17 +170,16 @@ int main() {
     return 0;
 }
 
-// 터미널 Raw 모드 활성화/비활성화
 void disable_raw_mode() { 
 #ifdef _WIN32
-// 윈도우 환경에서는 _getch() 함수가 raw_mode를 수행하기 때문에 터미널 설정이 불필요
+// getch
 #else
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios); 
 #endif
 }
 void enable_raw_mode() {
 #ifdef _WIN32
-// 윈도우 환경에서는 _getch() 함수가 raw_mode를 수행하기 때문에 터미널 설정이 불필요
+// getch
 #else
     tcgetattr(STDIN_FILENO, &orig_termios);
     atexit(disable_raw_mode);
@@ -203,7 +189,6 @@ void enable_raw_mode() {
 #endif
 }
 
-// 맵 파일 로드
 void load_maps() {
     FILE *file = fopen("map.txt", "r");
     if (!file) {
@@ -211,7 +196,7 @@ void load_maps() {
         exit(1);
     }
     int s = 0, r = 0;
-    char line[MAP_WIDTH + 3]; // \r, \n, 널문자에 대비해 맵 사이즈에서 +3 해줌
+    char line[MAP_WIDTH + 3];
     while (s < MAX_STAGES && fgets(line, sizeof(line), file)) {
         if ((line[0] == '\n' || line[0] == '\r') && r > 0) {
             s++;
@@ -228,7 +213,6 @@ void load_maps() {
 }
 
 
-// 현재 스테이지 초기화
 void init_stage() {
     enemy_count = 0;
     coin_count = 0;
@@ -254,7 +238,6 @@ void init_stage() {
     }
 }
 
-// 게임 화면 그리기
 void draw_game() {
     
     char display_map[MAP_HEIGHT][MAP_WIDTH + 1];
@@ -282,47 +265,36 @@ void draw_game() {
     display_map[player_y][player_x] = 'P';
 
     
-    char map_array[154 + (MAP_HEIGHT * (MAP_WIDTH + 1)) + 1];//한번에 출력하기 위한 버퍼, 154는 맵제외하고의 스트링 길이, 널문자용 + 1
+    char map_array[154 + (MAP_HEIGHT * (MAP_WIDTH + 1)) + 1];
     int current_length = 0;
-    //스트링 길이 13개
-    current_length += sprintf(map_array + current_length,"\x1b[HHeart: ");//널문자제외하고 sprintf개수 반환값 > 널문자위에 덮어써서 연속적으로 출력
-    //스트링 길이 9개
+    current_length += sprintf(map_array + current_length,"\x1b[HHeart: ");
     current_length += sprintf(map_array + current_length,"\x1b[1;7H");
-    //스트링 길이 7개
     current_length += sprintf(map_array + current_length,"       "); 
-    //스트링 길이 9개
     current_length += sprintf(map_array + current_length,"\x1b[1;7H");
     
     for(int i = 0; i < lives; i++){
-        //스트링 길이 4*3 = 12개(하트 3바이트)
         current_length += sprintf(map_array + current_length, "♥ ");
     }
-    //스트링 길이 1개 개행문자는 1개 취급
     current_length += sprintf(map_array + current_length, "\n");
-    //스트링 길이 최소 20+(9최소 1자리는 차지함 정수) 개(정수 범위 21억정도 10자리 차지해서), 최대 29개
     current_length += sprintf(map_array + current_length, "Stage: %d | Score: %d\n", stage + 1, score);
-    //스트링 길이 한글 3바이트씩 * 11글자 = 33개, 화살표 3 * 4개 = 12개, 나머지 문자 29개
     current_length += sprintf(map_array + current_length, "조작: ← → (이동), ↑ ↓ (사다리), Space (점프), q (종료)\n");
-    //총 13+9+7+9+12+1+29+33+12+29 = 154바이트 추가 필요
-    for (int y = 0; y < MAP_HEIGHT; y++) {//맵에 값넣기
+    for (int y = 0; y < MAP_HEIGHT; y++) {
         for(int x=0; x< MAP_WIDTH; x++){
             map_array[current_length++] = display_map[y][x];
         }
         map_array[current_length++] = '\n';
     }
-    map_array[current_length] = '\0';//printf는 널문자 만날때까지 읽다가 출력함, 널문자안만나면 안됨 %s형식자라서
+    map_array[current_length] = '\0';
 
     printf("%s", map_array);
 }
 
-// 게임 상태 업데이트
 void update_game(char input) {
     move_player(input);
     move_enemies();
     check_collisions();
 }
 
-// 플레이어 이동 로직
 void move_player(char input) {
     int next_x = player_x, next_y = player_y;
     char floor_tile = (player_y + 1 < MAP_HEIGHT) ? map[stage][player_y + 1][player_x] : '#';
@@ -344,11 +316,11 @@ void move_player(char input) {
     }
     
     if (input == 'w' || input == 's' || on_ladder)
-    { // 꼭 사다리 위가 아니여도 위치조정하게하여 벽에 붙은 사다리로 이동할수있게함, onladder 조건 추가로 else 중력 적용 로직으로 가는거 막음, 사다리에 매달려있으니
+    {
 
-        char changed = 0;//w일때 2번적용됨, play가 둘다 업데이트되어서
+        char changed = 0;
 
-        if (on_ladder && (input == 'w' || input == 's')) {//기존 코드의 사다리위에서 상하동작 로직
+        if (on_ladder && (input == 'w' || input == 's')) {
             if(next_y >= 0 && next_y < MAP_HEIGHT && map[stage][next_y][player_x] != '#') {
                 player_y = next_y;
                 is_jumping = 0;
@@ -358,19 +330,19 @@ void move_player(char input) {
         } 
 
         if (input == 'w' && on_ladder)
-        { // 맨위 사다리위에서 w를 누를때
+        { 
             if (player_y - 1 >= 0 && map[stage][player_y - 1][player_x] == '#')
-            { // 한칸위만 벽일때, 통과가능
-                if (player_y - 2 >= 0 && map[stage][player_y - 2][player_x] != '#' && !changed)//w 연속 두번 적용 막기
+            { 
+                if (player_y - 2 >= 0 && map[stage][player_y - 2][player_x] != '#' && !changed)
                 {
-                    next_y = player_y - 2; // 맨위가 벽이여도 벽이 한칸이면 이동, 벽을 통과함(벽에 안끼게 하기위해서)
-                    player_y = next_y;     // 실제 위치값 업데이트
-                    is_jumping = 0;        // 점프가 아니여야 점프로직이 사다리로직 방해안함
-                    velocity_y = 0;        // 전역변수라 점프아니면 초기화하는게 오류방지에 좋음, 아니면 다음에 값이 남음
+                    next_y = player_y - 2; 
+                    player_y = next_y;     
+                    is_jumping = 0;        
+                    velocity_y = 0;     
                 }
                 else
                 {
-                    next_y = player_y; // 한칸만 벽이여야 통과가능 벽 2칸 이상은 안됨, 이동 불가
+                    next_y = player_y;
                     player_y = next_y;
                     is_jumping = 0;
                     velocity_y = 0;
@@ -381,34 +353,34 @@ void move_player(char input) {
         else if (input == 's')
         {
             if (on_ladder && (player_y + 1 < MAP_HEIGHT) && map[stage][player_y + 1][player_x] == '#')
-            { // 1사다리 벽 사다리일때,플레이어가 1사다리에 있을때, 발밑의 벽1개넘어의 사다리를 타야할때
+            { 
                 if ((player_y + 2 < MAP_HEIGHT) && map[stage][player_y + 2][player_x] == 'H')
                 {
-                    next_y = player_y + 2; // 벽을 넘어 사다리로 바로이동(벽끼임 방지)
+                    next_y = player_y + 2;
                     player_y = next_y;
                     is_jumping = 0;
                     velocity_y = 0;
                 }
                 else
                 {
-                    next_y = player_y; // 발밑이 벽 사다리형태가 아니면, 이동 불가
+                    next_y = player_y;
                     player_y = next_y;
                     is_jumping = 0;
                     velocity_y = 0;
                 }
             }
             else if (!on_ladder && (player_y + 1 < MAP_HEIGHT) && map[stage][player_y + 1][player_x] == '#')
-            { // 발밑 벽 사다리일때, 플레이어가 벽1개넘어의 사다리를 타야할때
+            { 
                 if ((player_y + 2 < MAP_HEIGHT) && map[stage][player_y + 2][player_x] == 'H')
                 {
-                    next_y = player_y + 2; // 벽을 넘어 사다리로 바로이동(벽끼임 방지)
+                    next_y = player_y + 2;
                     player_y = next_y;
                     is_jumping = 0;
                     velocity_y = 0;
                 }
                 else
                 {
-                    next_y = player_y; // 발밑이 벽 사다리형태가 아니면, 이동 불가
+                    next_y = player_y;
                     player_y = next_y;
                     is_jumping = 0;
                     velocity_y = 0;
@@ -422,26 +394,26 @@ void move_player(char input) {
             if(next_y < 0) next_y = 0;
             velocity_y++;
 
-            if (velocity_y < 0 && next_y < MAP_HEIGHT && map[stage][player_y - 1][player_x] == '#') {//바로 위가 벽 점프막기
-                next_y = player_y;//0칸 점프
+            if (velocity_y < 0 && next_y < MAP_HEIGHT && map[stage][player_y - 1][player_x] == '#') {
+                next_y = player_y;
                 velocity_y = 0;
-                is_jumping = 0;//점프 아님
+                is_jumping = 0;
             }
             else if (velocity_y < 0 && next_y < MAP_HEIGHT && map[stage][player_y - 1][player_x] != '#' && map[stage][player_y - 2][player_x] != '#' && map[stage][player_y - 3][player_x] != '#') {
-                //3칸점프할수있으면 그대로 냅두기, -2 ,-1 
+                //3칸점프
             }
-            else if (velocity_y < 0 && next_y < MAP_HEIGHT && map[stage][player_y - 1][player_x] != '#' && map[stage][player_y - 2][player_x] != '#') {//점프할 공간 2칸, 한번에 2칸만 점프하기
-                next_y = player_y - 2;//2칸 점프
-                velocity_y = 0;//위로는 더 안감
-                is_jumping = 0;//점프아님 이제 추락함
+            else if (velocity_y < 0 && next_y < MAP_HEIGHT && map[stage][player_y - 1][player_x] != '#' && map[stage][player_y - 2][player_x] != '#') {
+                next_y = player_y - 2;
+                velocity_y = 0;
+                is_jumping = 0;
             }
-            else if (velocity_y < 0 && next_y < MAP_HEIGHT && map[stage][player_y - 1][player_x] != '#') {//점프할 공간 1칸, 1칸만 점프하기
-                next_y = player_y - 1;//1칸 점프
-                velocity_y = 0;//위로는 더 안감
-                is_jumping = 0;//점프아님 이제 추락함
+            else if (velocity_y < 0 && next_y < MAP_HEIGHT && map[stage][player_y - 1][player_x] != '#') {
+                next_y = player_y - 1;
+                velocity_y = 0;
+                is_jumping = 0;
             }
 
-            if(velocity_y > 0){  // 점프 후 낙하 시 바닥이 뚫리는 현상 제거 (velocity=3이면 player_y+3이기 때문에 그 사이 벽은 체크가 안됨 반복문으로 하나하나 체크)
+            if(velocity_y > 0){ 
                 for(int i = 1; i <= velocity_y && (player_y + i) < MAP_HEIGHT; i++){
                     if(map[stage][player_y + i][player_x] == '#'){
                         next_y = player_y + i - 1;
@@ -452,7 +424,7 @@ void move_player(char input) {
                 }
             }
 
-            if (velocity_y < 0)// 점프할때는 2칸 한번에 이동해서 검사못함, X랑 겹치면 사망처리
+            if (velocity_y < 0)
             { 
                 for (int i = 1; i <= -velocity_y; i++)
                 {
@@ -465,7 +437,7 @@ void move_player(char input) {
                 }
             }
             
-            if (velocity_y > 0)// 떨어질때는 2칸 한번에 이동해서 검사못함, X랑 겹치면 사망처리
+            if (velocity_y > 0)
             { 
                 for (int i = 1; i <= velocity_y; i++)
                 {
@@ -478,8 +450,8 @@ void move_player(char input) {
                 }
             }
 
-            if (velocity_y < 0)// 점프할때, 2칸 한번에 이동, C검사 못함 경로는 안막아야함
-                for (int i = 1; i <= -velocity_y; i++)//점프할때 경로의 코인 모두 검사
+            if (velocity_y < 0)
+                for (int i = 1; i <= -velocity_y; i++)
                 {
                     if (map[stage][player_y - i][player_x] == 'C')
                     {
@@ -488,15 +460,15 @@ void move_player(char input) {
                             if (!coins[j].collected && coins[j].x == player_x && coins[j].y == player_y - i)
                             {   
                                 sound_coin();
-                                coins[j].collected = 1; //코인 수집됨, 수집된 여부로 다음화면에서 사라짐
+                                coins[j].collected = 1;
                                 score += 20;
                             }
                         }
                     }
                 }
 
-            if (velocity_y > 0)// 떨어질때, 2칸 한번에 이동, C검사 못함 경로는 안막아야함
-                for (int i = 1; i <= velocity_y; i++)//떨어질때 경로의 코인 모두 검사
+            if (velocity_y > 0)
+                for (int i = 1; i <= velocity_y; i++)
                 {
                     if (map[stage][player_y + i][player_x] == 'C')
                     {
@@ -505,7 +477,7 @@ void move_player(char input) {
                             if (!coins[j].collected && coins[j].x == player_x && coins[j].y == player_y + i)
                             {   
                                 sound_coin();
-                                coins[j].collected = 1; //코인 수집됨, 수집된 여부로 다음화면에서 사라짐
+                                coins[j].collected = 1;
                                 score += 20;
                             }
                         }
@@ -528,17 +500,16 @@ void move_player(char input) {
         }
     }
 
-    if (next_x >= 0 && next_x < MAP_WIDTH && map[stage][player_y][next_x] != '#') player_x = next_x;//상하로 움직있는 다음 수평을 검사하면 중간에 벽뚫릴일이없음, 수평검사해놓고 위로 올라가버리면 위의 칸 상황은 다를 수있기때문에 위에칸에서도 수평검사가 필요, 마지막에 수평 검사하면 점프중간에 벽과 겹칠일이없음
+    if (next_x >= 0 && next_x < MAP_WIDTH && map[stage][player_y][next_x] != '#') player_x = next_x;
     
     if (player_y >= MAP_HEIGHT) init_stage();
 }
 
 
-// 적 이동 로직
 void move_enemies() {
     for (int i = 0; i < enemy_count; i++) {
         int next_x = enemies[i].x + enemies[i].dir;
-        if (next_x < 0 || next_x >= MAP_WIDTH || map[stage][enemies[i].y + 1][enemies[i].x] != '#' && (enemies[i].y + 1 < MAP_HEIGHT && map[stage][enemies[i].y + 1][next_x] == ' '))//공중에서 리젠된 X는 공중에서 왔다갔다하기
+        if (next_x < 0 || next_x >= MAP_WIDTH || map[stage][enemies[i].y + 1][enemies[i].x] != '#' && (enemies[i].y + 1 < MAP_HEIGHT && map[stage][enemies[i].y + 1][next_x] == ' '))
         {
             enemies[i].x = next_x;
         }
@@ -550,7 +521,6 @@ void move_enemies() {
     }
 }
 
-// 충돌 감지 로직
 void check_collisions() {
     for (int i = 0; i < enemy_count; i++) {
        if (player_x == enemies[i].x && player_y == enemies[i].y) {
@@ -580,7 +550,6 @@ void check_collisions() {
     }
 }
 
-// 비동기 키보드 입력 확인
 int kbhit() {
 #ifdef _WIN32
     return _kbhit();
@@ -608,14 +577,14 @@ void delay(int ms)
 {
 #ifdef _WIN32
     LARGE_INTEGER sleep_time;
-    sleep_time.QuadPart = -10000LL * ms;//-로 지난시간을 표시함(측정시작부터의 차이값) 기본단위 나노초(10의 7승 분의 1초) 밀리초(10의 3승 분의 1초)
+    sleep_time.QuadPart = -10000LL * ms;
 
-    SetWaitableTimer(hTimer, &sleep_time, 0, NULL, NULL, FALSE);//꼭 LARGE_INTEGER 구조체를 받음, union이라 모든 멤버변수는 같은 메모리공간을 씀 그래서 &연산자로 정확히 읽을수있음
+    SetWaitableTimer(hTimer, &sleep_time, 0, NULL, NULL, FALSE);
 
-    WaitForSingleObject(hTimer, INFINITE);//타이머 끝날때까지 프로그램은 대기
+    WaitForSingleObject(hTimer, INFINITE);
     
 #else
-  usleep(ms * 1000); // <unistd.h>에 선언된 usleep의 단위인 마이크로초에 * 1000 = 밀리초
+  usleep(ms * 1000); 
 #endif
 }
 void show_title_screen() {
@@ -686,7 +655,6 @@ printf("\n\n");
 #endif
 }
 
-//맵 크기중에 제일 큰거 저장, 스테이지 개수 저장
 void load_map_size() {
     FILE *file = fopen("map.txt", "r");
     if (!file) {
@@ -694,7 +662,7 @@ void load_map_size() {
         exit(1);
     }
 
-    char line[1000];//동적 할당을 위해 충분히 큰값을 너비로
+    char line[1000];
     int current_stage_height = 0;
     int total_stages = 0;
     int max_map_width = 0;
@@ -704,18 +672,18 @@ void load_map_size() {
         line[strcspn(line, "\n\r")] = '\0';
         int len = strlen(line);
 
-        if (len == 0) {//빈줄이면 다음 스테이지임
+        if (len == 0) {
             if (current_stage_height > 0) {
-                total_stages++;//스테이지 개수 추가
-                if (current_stage_height > max_map_height) {//맵의 최대 높이 찾기
+                total_stages++;
+                if (current_stage_height > max_map_height) {
                     max_map_height = current_stage_height;
                 }
-                current_stage_height = 0;//새맵되어서 맵 높이 초기화
+                current_stage_height = 0;
             }
             continue;
         }
 
-        if (len > 0) {//높이마다 최대 너비 찾기 
+        if (len > 0) { 
             current_stage_height++;
             if (len > max_map_width) {
                 max_map_width = len;
@@ -723,36 +691,35 @@ void load_map_size() {
         }
     }
 
-    fclose(file);// 자원 반환
+    fclose(file);
     
-    if (current_stage_height > 0) {// 마지막 줄 빈줄이없음 바로 map.txt의 마지막줄임, 스테이지 추가 시켜야함 이것도 맵임
+    if (current_stage_height > 0) {
         total_stages++;
-        if (current_stage_height > max_map_height) {//맵 최대 높이 찾기
+        if (current_stage_height > max_map_height) {
             max_map_height = current_stage_height;
         }
     }
     
-    //전역변수에 map.txt 가져온값 넣기
     MAX_STAGES = total_stages;
     MAP_WIDTH = max_map_width;
     MAP_HEIGHT = max_map_height;
 }
 
 void malloc_map() {
-    map = (char***)malloc(MAX_STAGES * sizeof(char**));//스테이지 개수만큼 공간 잡은 배열
+    map = (char***)malloc(MAX_STAGES * sizeof(char**));
     if (map == NULL) { 
         perror("스테이지 배열 메모리 할당 실패"); 
         exit(1); 
     }
 
     for (int s = 0; s < MAX_STAGES; s++) {
-        map[s] = (char**)malloc(MAP_HEIGHT * sizeof(char*));//맵 높이 만큼 공간 잡은 배열
+        map[s] = (char**)malloc(MAP_HEIGHT * sizeof(char*));
         if (map[s] == NULL) { 
             perror("스테이지 맵 높이 배열 메모리 할당 실패");
             
-            for (int i = 0; i < s; i++) {//할당된 반대로 해제해주기, 할당된거부터 해제하면 안쪽해제할때 할당된 메모리 위치 못찾음
+            for (int i = 0; i < s; i++) {
                 for(int j = 0; j < MAP_HEIGHT; j++){
-                    free(map[i][j]); //각 행 해제
+                    free(map[i][j]);
                 }
                 free(map[i]);
             }
@@ -762,7 +729,7 @@ void malloc_map() {
         }
 
         for (int r = 0; r < MAP_HEIGHT; r++) {
-            map[s][r] = (char*)malloc((MAP_WIDTH + 1) * sizeof(char));//맵 너비+1(널문자)만큼 공간잡은 배열, 
+            map[s][r] = (char*)malloc((MAP_WIDTH + 1) * sizeof(char));
             if (map[s][r] == NULL) { 
                 perror("맵 너비 배열 메모리 할당 실패");
                 
@@ -770,7 +737,7 @@ void malloc_map() {
                     free(map[s][j]);
                 }
                 free(map[s]);
-                for (int i = 0; i <= s; i++) {
+                for (int i = 0; i < s; i++) {
                     for(int j = 0; j < MAP_HEIGHT; j++){
                         free(map[i][j]);
                     }
@@ -780,32 +747,32 @@ void malloc_map() {
                 
                 exit(1); 
             }
-            memset(map[s][r], '\0', MAP_WIDTH + 1);//배열 전체널 문자로 초기화
+            memset(map[s][r], '\0', MAP_WIDTH + 1);
         }
     }
 }
 
 void free_map() {
-    if (map == NULL) {//공간 안잡혀있다면 바로 return
+    if (map == NULL) {
         return; 
     }
     
     for (int s = 0; s < MAX_STAGES; s++) 
     { 
-        if (map[s] != NULL)//공간 잡혀있으면 해제 
+        if (map[s] != NULL)
         {
             for (int r = 0; r < MAP_HEIGHT; r++) 
             { 
                 if (map[s][r] != NULL) {
-                    free(map[s][r]);//맵 x축 해제
+                    free(map[s][r]);
                 }
             }
             
-            free(map[s]);//맵 y축 해제
+            free(map[s]);
         }
     }
     
-    free(map);//맵 Stage 해제
+    free(map);
 }
 
 void hide_cursor(){
@@ -817,7 +784,6 @@ void show_cursor(){
 }
 
 
-//비프음으로 효과음 maker
 void sound_beep_maker(int hz, int ms) {
 #ifdef _WIN32
     Beep(hz, ms);
@@ -827,7 +793,6 @@ void sound_beep_maker(int hz, int ms) {
 #endif
 }
 
-// 게임 시작 시 효과음
 void sound_game_start() {
     sound_beep_maker(784, 80);  
     delay(10); 
@@ -839,25 +804,22 @@ void sound_game_start() {
     delay(10); 
     sound_beep_maker(1568, 150); 
 }
-// 동전 먹을 때 효과음
-void sound_coin() { // 코인 먹을 때 일시 멈춤 현상 발생 때문에 Beep에서 "\a" 사용으로 변경
+
+void sound_coin() {
     printf("\a");
     fflush(stdout); 
 }
 
-// 타격시 효과음
 void sound_hit() {
     sound_beep_maker(800, 300); 
 }
 
-// 죽을 때 효과음
 void sound_die() {
     sound_beep_maker(800, 600); 
     delay(5); 
     sound_beep_maker(200, 400); 
 }
 
-// 스테이지 클리어시 효과음
 void sound_stage_clear() {
     sound_beep_maker(1046, 150); 
     delay(50); 
@@ -871,7 +833,6 @@ void sound_stage_clear() {
     sound_beep_maker(2093, 400); 
 }
 
-//게임 완전 클리어시 효과음
 void sound_game_complete() {
     sound_beep_maker(523, 120);  
     delay(50); 
